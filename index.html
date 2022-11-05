@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>textshader</title>
+<style>
+	/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
+	html {
+	  line-height: 1.15; /* 1 */
+	  -webkit-text-size-adjust: 100%; /* 2 */
+	}
+	body {
+	  margin: 0;
+	}
+	main {
+	  display: block;
+	}
+	h1 {
+	  font-size: 2em;
+	  margin: 0.67em 0;
+	}
+	hr {
+	  box-sizing: content-box; /* 1 */
+	  height: 0; /* 1 */
+	  overflow: visible; /* 2 */
+	}
+	a {
+	  background-color: transparent;
+	}
+	abbr[title] {
+	  border-bottom: none; /* 1 */
+	  text-decoration: underline; /* 2 */
+	  text-decoration: underline dotted; /* 2 */
+	}
+	b,
+	strong {
+	  font-weight: bolder;
+	}
+	code,
+	kbd,
+	samp {
+	  font-family: monospace, monospace; /* 1 */
+	  font-size: 1em; /* 2 */
+	}
+	small {
+	  font-size: 80%;
+	}
+	sub,
+	sup {
+	  font-size: 75%;
+	  line-height: 0;
+	  position: relative;
+	  vertical-align: baseline;
+	}
+	sub {
+	  bottom: -0.25em;
+	}
+	sup {
+	  top: -0.5em;
+	}
+	img {
+	  border-style: none;
+	}
+	button,
+	input,
+	optgroup,
+	select,
+	textarea {
+	  font-family: inherit; /* 1 */
+	  font-size: 100%; /* 1 */
+	  line-height: 1.15; /* 1 */
+	  margin: 0; /* 2 */
+	}
+	button,
+	input { /* 1 */
+	  overflow: visible;
+	}
+	button,
+	select { /* 1 */
+	  text-transform: none;
+	}
+	button,
+	[type="button"],
+	[type="reset"],
+	[type="submit"] {
+	  -webkit-appearance: button;
+	}
+	button::-moz-focus-inner,
+	[type="button"]::-moz-focus-inner,
+	[type="reset"]::-moz-focus-inner,
+	[type="submit"]::-moz-focus-inner {
+	  border-style: none;
+	  padding: 0;
+	}
+	button:-moz-focusring,
+	[type="button"]:-moz-focusring,
+	[type="reset"]:-moz-focusring,
+	[type="submit"]:-moz-focusring {
+	  outline: 1px dotted ButtonText;
+	}
+	fieldset {
+	  padding: 0.35em 0.75em 0.625em;
+	}
+	legend {
+	  box-sizing: border-box; /* 1 */
+	  color: inherit; /* 2 */
+	  display: table; /* 1 */
+	  max-width: 100%; /* 1 */
+	  padding: 0; /* 3 */
+	  white-space: normal; /* 1 */
+	}
+	progress {
+	  vertical-align: baseline;
+	}
+	textarea {
+	  overflow: auto;
+	}
+	[type="checkbox"],
+	[type="radio"] {
+	  box-sizing: border-box; /* 1 */
+	  padding: 0; /* 2 */
+	}
+	[type="number"]::-webkit-inner-spin-button,
+	[type="number"]::-webkit-outer-spin-button {
+	  height: auto;
+	}
+	[type="search"] {
+	  -webkit-appearance: textfield; /* 1 */
+	  outline-offset: -2px; /* 2 */
+	}
+	[type="search"]::-webkit-search-decoration {
+	  -webkit-appearance: none;
+	}
+	::-webkit-file-upload-button {
+	  -webkit-appearance: button; /* 1 */
+	  font: inherit; /* 2 */
+	}
+	details {
+	  display: block;
+	}
+	summary {
+	  display: list-item;
+	}
+	template {
+	  display: none;
+	}
+	[hidden] {
+	  display: none;
+	}
+
+	:root {
+		--bgcolor: #207687;
+	}
+
+	.header {
+		padding: 20px;
+		color: white;
+		font-size: 30px;
+		font-family: monospace;
+		font-weight: bolder;
+		text-align: left;
+		display: flex;
+	}
+	.footer {
+		padding: 10px;
+		color: white;
+		font-size: 30px;
+		font-family: monospace;
+		font-weight: bolder;
+		text-align: left;
+		display: flex;
+	}
+	html,
+	body {
+		height: 100%;
+		overflow-x: hidden;
+		background: #207687;
+	}
+	body {
+		display: flex;
+		flex-direction: column;
+	}
+	.content {
+		display: flex;
+		flex-grow: 1;
+		flex-wrap: wrap;
+		justify-content: center;
+	}
+	.content > div {
+		flex-grow: 1;
+		flex-basis: 0;
+		min-height: 5ch;
+	}
+	#editor {
+		min-width: 20ch;
+	}
+	#frame {
+		background: #000000;
+		color: rgba(256,256,256,0.5);
+		white-space: pre;
+	 	/* line-height: 1; */
+		font-family: monospace;
+		text-shadow: 0.1ch 0.1ch 0.1ch #00FF00,
+					 0.1ch 0ch 0.1ch #0000FF,
+					 0.0ch 0.1ch 0.1ch #FF0000;
+		/* font-size: 1.25vw; */
+		max-width: 80ch;
+		min-width: 80ch;
+	}
+	.lightmode #frame {
+		background: #EEEEEE;
+		color: rgba(0,0,0,1);
+		text-shadow: 0 0 0.1ch #000000;
+	}
+	.fullscreen #frame {
+		font-size: 2.08vw;
+	}
+	.header > span:first-child {
+		flex-grow: 1;
+		padding: 5px;
+	}
+	.header > span:not(:first-child) {
+		flex-grow: 0;
+		padding: 5px;
+	}
+	.footer > span:first-child {
+		flex-grow: 1;
+		padding: 5px;
+	}
+	.footer > span:not(:first-child) {
+		flex-grow: 0;
+		padding: 5px;
+	}
+	.menubutton {
+		cursor:pointer;
+		user-select: none;
+		-webkit-user-select: none;
+	}
+	select {
+		font-size: 75%;
+		width: 10ch;
+		white-space: pre;
+	}
+</style
+</head>
+<body>
+	<div class="header">
+		<span>textshader</span>
+	</div>
+	<div class="content">
+		<div id="editor"></div>
+		<div id="frame"></div>
+	</div>
+	<div class="footer">
+		<span></span>
+		<span>
+			<label for="examples">examples:</label>
+			<select name="examples" id="examples">
+			</select>
+		</span>
+		<span>
+			<label for="charsets">charset:</label>
+			<select name="charsets" id="charsets">
+				<option value=" .'`^&quot;,:;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"> .'`^";,:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$</option>
+				<option> ░▒▓█</option>
+				<option value="0123456789#">debug</option>
+				<option value="                                 !&quot;#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~ ">ascii</option>
+			</select>
+		</span>
+		<span id="darklight" class="menubutton">🌕</span>
+		<span id="playpause" class="menubutton">⏸︎</span>
+		<span id="fullscreen" class="menubutton">📺</span>
+	</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.12.3/ace.min.js" type="text/javascript" charset="utf-8"></script>
+<script>
+	ace.config.set('basePath', 'https://cdnjs.cloudflare.com/ajax/libs/ace/1.12.3/')
+	var editor = ace.edit("editor")
+	editor.setOptions({fontSize: "12pt"})
+	editor.setTheme("ace/theme/monokai")
+	editor.session.setMode("ace/mode/javascript")
+
+	let paused = false
+	const playpause = document.getElementById("playpause")
+	playpause.onclick = ()=>{
+		paused = !paused
+		playpause.innerText = paused ? "▶️" : "⏸︎"
+	}
+
+	const darklight = document.getElementById("darklight")
+	darklight.onclick = ()=>{
+		darklight.innerText = document.body.classList.toggle("lightmode") ? "🌑" : "🌕"
+	}
+
+	const fullscreen = document.getElementById("fullscreen")
+	fullscreen.onclick = ()=>{
+		document.body.classList.add("fullscreen")
+		if (frame.requestFullscreen) {
+			frame.requestFullscreen()
+		} else if (frame.mozRequestFullScreen) {
+			frame.mozRequestFullScreen()
+		} else if (frame.webkitRequestFullscreen) {
+			frame.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT)
+		} else if (frame.msRequestFullscreen) {
+			frame.msRequestFullscreen()
+		}
+	}
+
+	function exitHandler() {
+		if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+			document.body.classList.remove("fullscreen")
+		}
+	}
+	for (const e of ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange']) {
+		document.addEventListener(e, exitHandler)
+	}
+
+	const charsets = document.getElementById("charsets")
+	let colors = ""
+	charsets.onchange = function() {
+		colors = this.options[this.selectedIndex].value
+	}
+	charsets.onchange()
+
+	const examples = [
+["bounce", `function shader(x, y, t) {
+    const bounce = (v, P) => {
+        const a = v % (2*P)
+        return a < P ? a/P : 2 - a/P;
+    }
+    const drawBall = (size, t) => {
+        const x2 = bounce(t, 3)
+        const y2 = bounce(t, 3.95)
+        const dist = pow(x - x2, 2) + pow(y - y2, 2)
+    	return max(1.1-dist*50, 0);
+    }
+    return drawBall(1,t) + drawBall(1,t+1) + drawBall(1,t+2)
+}`],
+["bounce2", `function shader(x, y, t) {
+	return sin(1*x+t)*0.5+sin(8*y+t)*0.5+1
+}`],
+["hello world", `function shader(x, y, t) {
+    // Use the ascii charset!
+
+    // Convert to text-space coords
+    x = round(x * (width-1))
+    y = round(y * (height-1))
+
+    const text = "Hello World!"
+    for (let i = 0; i < text.length; i++) {
+        const xpos = round((sin(t)/4+0.5)*80) + i - round(text.length / 2)
+        const ypos = round((sin(t+PI/2)/4+0.5)*20)
+
+        if (x == xpos && y == ypos) return text[i].charCodeAt()/127
+    }
+    return 0;
+}`]]
+	const examplesElem = document.getElementById("examples")
+	for (const [name, source] of examples) {
+		const option = document.createElement('option')
+		option.innerText = name
+		option.value = source
+		examplesElem.appendChild(option)
+	}
+	examplesElem.onchange = function() {
+		editor.setValue(this.options[this.selectedIndex].value)
+		editor.clearSelection()
+	}
+	examplesElem.onchange()
+
+	const width = 80
+	const height = 25
+	const FPS = 60
+	let t = 0
+
+	let lastSource = ""
+	let curError = ""
+
+	function updateFrame() {
+		if (paused) return
+		// Set frame size
+		const frame = document.getElementById("frame")
+		// frame.style["max-width"] = `${width}ch`
+
+		// Reload everything on source change just in case
+		const source = editor.getValue()
+		if (lastSource != source) {
+
+			// Import all of Math's properties
+			for (const v of Object.getOwnPropertyNames(Math)) {
+				this[v] = Math[v]
+			}
+
+			// Add some more common math functions
+			this.lerp = (a, b, p)=>{
+				return a*(1-p) + b*p
+			}
+			this.clamp = (x, lo, hi)=>{
+				return min(max(x, lo), hi)
+			}
+
+			lastSource = source
+			try {
+				// Yeah yeah, very dangerous and fragile, I know
+				eval?.(source) // Indirect eval
+				curError = ""
+			} catch (e) {
+				curError = e.message
+			}
+		}
+		let buffer = ""
+		for (let i = 0; i < height; i++) {
+			for (let j = 0; j < width; j++) {
+				const val = shader(j/(width-1), (height - 1 - i) / (height - 1), t)
+				let ind = floor(clamp(val * (colors.length - 1), 0, colors.length - 1))
+				if (!Number.isFinite(ind)) {
+					ind = 0
+				}
+				buffer += colors[ind]
+			}
+			buffer += "\n"
+		}
+		if (curError) buffer += `\nERROR: ${curError}`
+		frame.innerText = buffer
+		t += 1 / FPS
+	}
+	setInterval(updateFrame, 1000 / FPS);
+</script>
+</body>
+</html>
