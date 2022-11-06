@@ -154,7 +154,7 @@
 	}
 
 	.header {
-		padding: 20px;
+		padding: 5px;
 		color: white;
 		font-size: 30px;
 		font-family: monospace;
@@ -163,7 +163,7 @@
 		display: flex;
 	}
 	.footer {
-		padding: 10px;
+		padding: 5px;
 		color: white;
 		font-size: 30px;
 		font-family: monospace;
@@ -223,6 +223,7 @@
 	.header > span:not(:first-child) {
 		flex-grow: 0;
 		padding: 5px;
+		font-weight: normal;
 	}
 	.footer > span:first-child {
 		flex-grow: 1;
@@ -242,18 +243,23 @@
 		width: 10ch;
 		white-space: pre;
 	}
-</style
+
+	a, a:hover, a:visited, a:active {
+		color: inherit;
+	}
+</style>
 </head>
 <body>
 	<div class="header">
 		<span>textshader</span>
+		<span>by <a href="https://leoadberg.com" target="_blank">Leo Adberg</a> and inspired by <a href="https://www.shadertoy.com/" target="_blank">shadertoy</a></span>
 	</div>
 	<div class="content">
 		<div id="editor"></div>
 		<div id="frame"></div>
 	</div>
 	<div class="footer">
-		<span></span>
+		<span id="hint"></span>
 		<span>
 			<label for="examples">examples:</label>
 			<select name="examples" id="examples">
@@ -268,9 +274,10 @@
 				<option value="0123456789#">debug</option>
 			</select>
 		</span>
-		<span id="darklight" class="menubutton">🌕</span>
-		<span id="playpause" class="menubutton">⏸︎</span>
-		<span id="fullscreen" class="menubutton">📺</span>
+		<span id="darklight" class="menubutton" title="toggle light/dark">🌕</span>
+		<span id="playpause" class="menubutton" title="play/pause">⏸︎</span>
+		<span id="fullscreen" class="menubutton" title="fullscreen">📺</span>
+		<span id="share" class="menubutton" title="share">🔗</span>
 	</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.12.3/ace.min.js" type="text/javascript" charset="utf-8"></script>
 <script>
@@ -293,6 +300,7 @@
 		const light = document.body.classList.toggle("lightmode")
 		darklight.innerText = light ? "🌑" : "🌕"
 		editor.setTheme(light ? "ace/theme/chrome" : "ace/theme/twilight")
+		editor.focus()
 	}
 
 	const fullscreen = document.getElementById("fullscreen")
@@ -327,6 +335,8 @@
 
 	const examples = [
 ["bounce", `function shader(x, y, t) {
+    // Build your own or try the other examples!
+
     const bounce = (v, P) => {
         const a = v % (2*P)
         return a < P ? a/P : 2 - a/P;
@@ -365,7 +375,7 @@
         "t",
         "",
         "// Some extra hidden variables are available",
-        "[width, height]",
+        "[width, height, mousex, mousey]",
         "",
         "// Happy hacking!",
     ]
@@ -374,11 +384,10 @@
     x = round(x * (width-1))
     y = round((1-y) * (height-1))
 
-    // return y/25
     if (y < tutorial.length) {
         let line = tutorial[y]
         const result = eval(line)
-        if (result) line += ` -> ${result}`
+        if (result) line += \` -> \${result}\`
         return line.charCodeAt(x)/127
     }
     return 0;
@@ -399,7 +408,7 @@
     }
     return 0;
 }`],
-["orbit", `function shader(x, y, t) {
+["earth", `function shader(x, y, t) {
     // Not scientific in the slightest
 
     const dir = norm([x-0.5, (y-0.5)*0.6, 1])
@@ -446,6 +455,46 @@
     }
 
     return 0.1*((round(round(x*(width-1)+t*2) * (y*(height-1)+10)) + y*18 & 0x1f) == 0)
+}`],
+["xeyes", `function shader(x, y, t) {
+    // Squeeze a bit
+    x *= 2
+    mouse = [mousex*2, mousey]
+
+    let res = 0
+    function drawCircle(center, radius, value) {
+        if (dist([x,y], center) < radius) res = value
+    }
+    function drawEye(center) {
+        drawCircle(center, 0.41, .1)
+        drawCircle(center, 0.4, 1)
+        drawCircle(center, 0.35, 0.1)
+
+        let delta = sub(mouse, center)
+        if (length(delta) > 0.2) {
+            delta = mul(norm(delta), 0.2)
+        }
+        drawCircle(add(center, delta), 0.15, 0.7)
+    }
+    drawEye([0.5,0.5])
+    drawEye([1.5,0.5])
+
+    return res
+}`],
+["mandelbrot", `function shader(x, y, t) {
+    const center = [-.7451544,.1861545]
+    const lo = sub(center, mul([1,1], pow(0.5, t%5)))
+    const hi = add(center, mul([1,1], pow(0.5, t%5)))
+
+    x = lerp(lo[0], hi[0], x)
+    y = lerp(lo[1], hi[1], y)
+
+    const cmul = (c1, c2) => [c1[0]*c2[0] - c1[1]*c2[1], c1[0]*c2[1] + c1[1]*c2[0]]
+    let v = [x,y]
+    for (let i = 0; i < 100; i++) {
+        v = add(cmul(v,v), [x,y])
+    }
+    return 1 / length(v)
 }`]]
 	const examplesElem = document.getElementById("examples")
 	for (const [name, source] of examples) {
@@ -460,16 +509,52 @@
 	}
 	examplesElem.onchange()
 
+	const share = document.getElementById("share")
+	share.onclick = ()=>{
+		// const source = editor.getValue()
+		// const base64 = encodeURIComponent(source)
+		// let url = window.location.href.split('?')[0]
+		// url += `?charset=${charsets.selectedOptions[0].text}&source=${base64}`
+		// window.history.pushState("", "", url);
+	}
+
+	let mousex = 0
+	let mousey = 0
+	function onMousemove(e){
+		let m_posx = 0, m_posy = 0, e_posx = 0, e_posy = 0;
+		if (!e) e = window.event
+		if (e.pageX || e.pageY) {
+			m_posx = e.pageX;
+			m_posy = e.pageY;
+		} else if (e.clientX || e.clientY) {
+			m_posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+			m_posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+		}
+		//get parent element position in document
+		let obj = frame;
+		if (obj.offsetParent) {
+			do {
+				e_posx += obj.offsetLeft;
+				e_posy += obj.offsetTop;
+			} while (obj = obj.offsetParent);
+		}
+		mousex = (m_posx-e_posx) / frame.offsetWidth
+		mousey = 1 - (m_posy-e_posy) / (height * parseInt(window.getComputedStyle(frame).lineHeight))
+	}
+	document.body.addEventListener('mousemove', onMousemove, false)
+
 	const width = 80
 	const height = 25
 	const FPS = 60
-	let t = 0
+	const start = Date.now()
 
 	let lastSource = ""
 	let curError = ""
 
 	function updateFrame() {
 		if (paused) return
+
+		const t = (Date.now() - start)/1000;
 		// Set frame size
 		const frame = document.getElementById("frame")
 		// frame.style["max-width"] = `${width}ch`
@@ -510,6 +595,7 @@
 			this.div = (v, x) => v.map(e => e/x)
 			this.length = v => sqrt(dot(v, v))
 			this.norm = v => div(v, length(v))
+			this.dist = (v1, v2) => length(sub(v1, v2))
 
 			lastSource = source
 			try {
@@ -539,7 +625,6 @@
 		}
 		if (curError) buffer += `\nERROR: ${curError}`
 		frame.innerText = buffer
-		t += 1 / FPS
 	}
 	setInterval(updateFrame, 1000 / FPS);
 </script>
