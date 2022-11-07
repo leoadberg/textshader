@@ -5,152 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>textshader</title>
 <style>
-	/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
-	html {
-	  line-height: 1.15; /* 1 */
-	  -webkit-text-size-adjust: 100%; /* 2 */
-	}
-	body {
-	  margin: 0;
-	}
-	main {
-	  display: block;
-	}
-	h1 {
-	  font-size: 2em;
-	  margin: 0.67em 0;
-	}
-	hr {
-	  box-sizing: content-box; /* 1 */
-	  height: 0; /* 1 */
-	  overflow: visible; /* 2 */
-	}
-	a {
-	  background-color: transparent;
-	}
-	abbr[title] {
-	  border-bottom: none; /* 1 */
-	  text-decoration: underline; /* 2 */
-	  text-decoration: underline dotted; /* 2 */
-	}
-	b,
-	strong {
-	  font-weight: bolder;
-	}
-	code,
-	kbd,
-	samp {
-	  font-family: monospace, monospace; /* 1 */
-	  font-size: 1em; /* 2 */
-	}
-	small {
-	  font-size: 80%;
-	}
-	sub,
-	sup {
-	  font-size: 75%;
-	  line-height: 0;
-	  position: relative;
-	  vertical-align: baseline;
-	}
-	sub {
-	  bottom: -0.25em;
-	}
-	sup {
-	  top: -0.5em;
-	}
-	img {
-	  border-style: none;
-	}
-	button,
-	input,
-	optgroup,
-	select,
-	textarea {
-	  font-family: inherit; /* 1 */
-	  font-size: 100%; /* 1 */
-	  line-height: 1.15; /* 1 */
-	  margin: 0; /* 2 */
-	}
-	button,
-	input { /* 1 */
-	  overflow: visible;
-	}
-	button,
-	select { /* 1 */
-	  text-transform: none;
-	}
-	button,
-	[type="button"],
-	[type="reset"],
-	[type="submit"] {
-	  -webkit-appearance: button;
-	}
-	button::-moz-focus-inner,
-	[type="button"]::-moz-focus-inner,
-	[type="reset"]::-moz-focus-inner,
-	[type="submit"]::-moz-focus-inner {
-	  border-style: none;
-	  padding: 0;
-	}
-	button:-moz-focusring,
-	[type="button"]:-moz-focusring,
-	[type="reset"]:-moz-focusring,
-	[type="submit"]:-moz-focusring {
-	  outline: 1px dotted ButtonText;
-	}
-	fieldset {
-	  padding: 0.35em 0.75em 0.625em;
-	}
-	legend {
-	  box-sizing: border-box; /* 1 */
-	  color: inherit; /* 2 */
-	  display: table; /* 1 */
-	  max-width: 100%; /* 1 */
-	  padding: 0; /* 3 */
-	  white-space: normal; /* 1 */
-	}
-	progress {
-	  vertical-align: baseline;
-	}
-	textarea {
-	  overflow: auto;
-	}
-	[type="checkbox"],
-	[type="radio"] {
-	  box-sizing: border-box; /* 1 */
-	  padding: 0; /* 2 */
-	}
-	[type="number"]::-webkit-inner-spin-button,
-	[type="number"]::-webkit-outer-spin-button {
-	  height: auto;
-	}
-	[type="search"] {
-	  -webkit-appearance: textfield; /* 1 */
-	  outline-offset: -2px; /* 2 */
-	}
-	[type="search"]::-webkit-search-decoration {
-	  -webkit-appearance: none;
-	}
-	::-webkit-file-upload-button {
-	  -webkit-appearance: button; /* 1 */
-	  font: inherit; /* 2 */
-	}
-	details {
-	  display: block;
-	}
-	summary {
-	  display: list-item;
-	}
-	template {
-	  display: none;
-	}
-	[hidden] {
-	  display: none;
-	}
-
 	:root {
 		--bgcolor: #207687;
+	}
+
+	html {
+		line-height: 1.15;
+		-webkit-text-size-adjust: 100%;
+	}
+	main {
+		display: block;
+	}
+	[hidden] {
+		display: none;
 	}
 
 	.header {
@@ -161,6 +28,7 @@
 		font-weight: bolder;
 		text-align: left;
 		display: flex;
+		white-space: nowrap;
 	}
 	.footer {
 		padding: 5px;
@@ -178,6 +46,7 @@
 		background: #207687;
 	}
 	body {
+		margin: 0;
 		display: flex;
 		flex-direction: column;
 	}
@@ -199,12 +68,11 @@
 		background: #000000;
 		color: rgba(256,256,256,0.5);
 		white-space: pre;
-	 	/* line-height: 1; */
 		font-family: monospace;
 		text-shadow: 0.1ch 0.1ch 0.1ch #00FF00,
 					 0.1ch 0ch 0.1ch #0000FF,
 					 0.0ch 0.1ch 0.1ch #FF0000;
-		/* font-size: 1.25vw; */
+		font-size: 13px;
 		max-width: 80ch;
 		min-width: 80ch;
 	}
@@ -286,7 +154,23 @@
 	editor.setOptions({fontSize: "12pt"})
 	editor.setTheme("ace/theme/twilight")
 	editor.session.setMode("ace/mode/javascript")
-	// editor.session.$worker.send("changeOptions", [{asi: true}]);
+	setTimeout(()=> editor.session.$worker.send("changeOptions", [{asi: true}]), 100)
+
+	const fastmap = (v, f) => {
+		let ret = []
+		for (let i = 0; i < v.length; i++) {
+			ret.push(f(v[i], i))
+		}
+		return ret
+	}
+
+	const hint = document.getElementById("hint")
+	let lastHint = null
+	const updateHint = message => {
+		clearTimeout(lastHint)
+		hint.innerText = message
+		lastHint = setTimeout(()=>{hint.innerText = ""}, 5000)
+	}
 
 	let paused = false
 	const playpause = document.getElementById("playpause")
@@ -294,6 +178,10 @@
 		paused = !paused
 		playpause.innerText = paused ? "▶️" : "⏸︎"
 	}
+	let focused = true
+	document.addEventListener("visibilitychange", ()=>{
+		focused = document.visibilityState != "hidden"
+	});
 
 	const darklight = document.getElementById("darklight")
 	darklight.onclick = ()=>{
@@ -303,8 +191,10 @@
 		editor.focus()
 	}
 
-	const fullscreen = document.getElementById("fullscreen")
-	fullscreen.onclick = ()=>{
+	let fullscreen = false
+	const fullscreenElem = document.getElementById("fullscreen")
+	fullscreenElem.onclick = ()=>{
+		fullscreen = true
 		document.body.classList.add("fullscreen")
 		if (frame.requestFullscreen) {
 			frame.requestFullscreen()
@@ -319,6 +209,7 @@
 
 	function exitHandler() {
 		if (!document.fullscreenElement && !document.webkitIsFullScreen && !document.mozFullScreen && !document.msFullscreenElement) {
+			fullscreen = false
 			document.body.classList.remove("fullscreen")
 		}
 	}
@@ -332,26 +223,18 @@
 		colors = this.options[this.selectedIndex].value
 	}
 	charsets.onchange()
+	const setCharset = charset => {
+		for (let i = 0; i < charsets.options.length; i++) {
+			if (charsets.options[i].text == charset) {
+				charsets.selectedIndex = i
+				charsets.onchange()
+				break
+			}
+		}
+	}
 
 	const examples = [
-["bounce", `function shader(x, y, t) {
-    // Build your own or try the other examples!
-
-    const bounce = (v, P) => {
-        const a = v % (2*P)
-        return a < P ? a/P : 2 - a/P;
-    }
-    const drawBall = (size, t) => {
-        const x2 = bounce(t, 3)
-        const y2 = bounce(t, 3.95)
-        const dist = pow(x - x2, 2) + pow(y - y2, 2)
-    	return max(1.1-dist*50, 0);
-    }
-    return drawBall(1,t) + drawBall(1,t+1) + drawBall(1,t+2)
-}`],
-["tutorial", `function shader(x, y, t) {
-    // *** Switch to the ascii charset ***
-
+["tutorial", "ascii", `function shader(x, y, t) {
     tutorial = [
         "// textshader is a live rendered view of a shader written in javascript.",
         "// All js is valid but a few ease-of-use changes have been made:",
@@ -392,23 +275,7 @@
     }
     return 0;
 }`],
-["hello world", `function shader(x, y, t) {
-    // Use the ascii charset!
-
-    // Convert to text-space coords
-    x = round(x * (width-1))
-    y = round(y * (height-1))
-
-    const text = "Hello World!"
-    for (let i = 0; i < text.length; i++) {
-        const xpos = round((sin(t)/4+0.5)*80) + i - round(text.length / 2)
-        const ypos = round((sin(t+PI/2)/4+0.5)*20)
-
-        if (x == xpos && y == ypos) return text[i].charCodeAt()/127
-    }
-    return 0;
-}`],
-["earth", `function shader(x, y, t) {
+["earth", "default", `function shader(x, y, t) {
     // Not scientific in the slightest
 
     const dir = norm([x-0.5, (y-0.5)*0.6, 1])
@@ -456,7 +323,7 @@
 
     return 0.1*((round(round(x*(width-1)+t*2) * (y*(height-1)+10)) + y*18 & 0x1f) == 0)
 }`],
-["xeyes", `function shader(x, y, t) {
+["xeyes", "default", `function shader(x, y, t) {
     // Squeeze a bit
     x *= 2
     mouse = [mousex*2, mousey]
@@ -481,7 +348,7 @@
 
     return res
 }`],
-["mandelbrot", `function shader(x, y, t) {
+["mandelbrot", "default", `function shader(x, y, t) {
     const center = [-.7451544,.1861545]
     const lo = sub(center, mul([1,1], pow(0.5, t%5)))
     const hi = add(center, mul([1,1], pow(0.5, t%5)))
@@ -495,32 +362,118 @@
         v = add(cmul(v,v), [x,y])
     }
     return 1 / length(v)
-}`]]
+}`],
+["grapher", "ascii", `function shader(x, y, t) {
+    const f = x => 5*sin(x*0.1 + t*5)
+
+    // Convert to graph-space coords
+    x = round(x * (width-1) - width/2)
+    y = round(y * (height-1) - height/2)
+    cursor = round(mousex * (width-1) - width/2)
+
+    let ret = " "
+
+    // Plot axes
+    if (x == 0 && y == 0) {
+        ret = "+"
+    } else if (x == 0) {
+        ret = "|"
+    } else if (y == 0) {
+        ret = "-"
+    }
+
+    // Plot graph
+    if (round(f(x)) == y) {
+        ret = x == cursor ? "#" : "."
+    }
+
+    // Legend
+    if (y == -floor(height/2)) {
+        const text = \`Plotting: \${f}, x=\${cursor}, y=\${f(cursor).toFixed(3)}\`
+        const start = -floor(width/2)
+        if (x >= start && x < start + text.length) {
+            ret = text[x - start]
+        }
+    }
+
+    return ret.charCodeAt()/127
+}`],
+["bounce", "default", `function shader(x, y, t) {
+    const bounce = (v, P) => {
+        const a = v % (2*P)
+        return a < P ? a/P : 2 - a/P;
+    }
+    const drawBall = t => {
+        const x2 = bounce(t, 3) * 0.8 + 0.1
+        const y2 = bounce(t, 3.95) * 0.8 + 0.1
+        const dist = pow(x - x2, 2) + pow(y - y2, 2)
+    	return max(1.1-dist*50, 0);
+    }
+    return drawBall(t) + drawBall(t+1) + drawBall(t+2)
+}`],
+]
 	const examplesElem = document.getElementById("examples")
-	for (const [name, source] of examples) {
+	for (const [name, charset, source] of examples) {
 		const option = document.createElement('option')
 		option.innerText = name
 		option.value = source
+		option.setAttribute("charset", charset)
 		examplesElem.appendChild(option)
 	}
 	examplesElem.onchange = function() {
-		editor.setValue(this.options[this.selectedIndex].value)
+		const option = this.options[this.selectedIndex]
+		editor.setValue(option.value)
 		editor.clearSelection()
+		setCharset(option.getAttribute("charset"))
 	}
+	// Pick a random example on load
+	examplesElem.selectedIndex = Math.floor(Math.random() * examples.length)
 	examplesElem.onchange()
 
 	const share = document.getElementById("share")
 	share.onclick = ()=>{
-		// const source = editor.getValue()
-		// const base64 = encodeURIComponent(source)
-		// let url = window.location.href.split('?')[0]
-		// url += `?charset=${charsets.selectedOptions[0].text}&source=${base64}`
-		// window.history.pushState("", "", url);
+		const source = editor.getValue()
+		const apikey = "hUmkMI1m7fcGor_uwN_eakzGtdLAorXv" // Be nice with this :)
+
+		fetch('https://corsproxy.io/?' + encodeURIComponent(`https://pastebin.com/api/api_post.php`),
+			{
+				method: "POST",
+				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				body: `api_dev_key=${apikey}&api_option=paste&api_paste_code=${encodeURIComponent(source)}`
+			})
+			.then(response => {
+				if (response.ok) return response.text()
+				console.log(response.body)
+				console.log(response)
+				updateHint("Error!")
+				throw new Error(`Could not fetch source`)
+			})
+			.then(data => {
+				console.log(data)
+				location.hash = data.split("/").at(-1)
+				updateHint("Copied link!")
+			})
+	}
+
+	const hash = location.hash.substr(1)
+	if (hash != "") {
+		let [charset, pastecode] = hash.split(".")
+		if (confirm(`Do you trust the code at https://pastebin.com/${pastecode} to run in your browser?`))
+		fetch('https://corsproxy.io/?' + encodeURIComponent(`https://pastebin.com/raw/${pastecode}`))
+			.then(response => {
+				if (response.ok) return response.text()
+				throw new Error('Could not fetch source')
+			})
+			.then(data => {
+				editor.setValue(data)
+				setCharset(charset)
+			});
 	}
 
 	let mousex = 0
 	let mousey = 0
 	function onMousemove(e){
+		// Taken from https://stackoverflow.com/questions/16154857
 		let m_posx = 0, m_posy = 0, e_posx = 0, e_posy = 0;
 		if (!e) e = window.event
 		if (e.pageX || e.pageY) {
@@ -530,19 +483,20 @@
 			m_posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
 			m_posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
 		}
-		//get parent element position in document
-		let obj = frame;
-		if (obj.offsetParent) {
+		let curObj = frame;
+		if (curObj.offsetParent) {
 			do {
-				e_posx += obj.offsetLeft;
-				e_posy += obj.offsetTop;
-			} while (obj = obj.offsetParent);
+				e_posx += curObj.offsetLeft;
+				e_posy += curObj.offsetTop;
+			} while (curObj = curObj.offsetParent);
 		}
 		mousex = (m_posx-e_posx) / frame.offsetWidth
 		mousey = 1 - (m_posy-e_posy) / (height * parseInt(window.getComputedStyle(frame).lineHeight))
 	}
 	document.body.addEventListener('mousemove', onMousemove, false)
 
+	const frame = document.getElementById("frame")
+	const originalFrameWidth = frame.offsetWidth
 	const width = 80
 	const height = 25
 	const FPS = 60
@@ -552,12 +506,19 @@
 	let curError = ""
 
 	function updateFrame() {
-		if (paused) return
+		if (paused || !focused) return
 
 		const t = (Date.now() - start)/1000;
-		// Set frame size
-		const frame = document.getElementById("frame")
-		// frame.style["max-width"] = `${width}ch`
+
+		if (fullscreen) {
+			frame.removeAttribute("style")
+		} else {
+			if (document.body.offsetWidth < originalFrameWidth) {
+				frame.style.fontSize = `${13 * document.body.offsetWidth / originalFrameWidth}px`
+			} else if (getComputedStyle(frame) != "13px") {
+				frame.style.fontSize = "13px"
+			}
+		}
 
 		// Reload everything on source change just in case
 		const source = editor.getValue()
@@ -585,14 +546,14 @@
 			}
 			this.add = (v1, v2)=>{
 				if (v1.length != v2.length) throw "Mismatching vector lengths"
-				return v1.map((e, i) => e + v2[i])
+				return fastmap(v1, (e, i) => e + v2[i])
 			}
 			this.sub = (v1, v2)=>{
 				if (v1.length != v2.length) throw "Mismatching vector lengths"
-				return v1.map((e, i) => e - v2[i])
+				return fastmap(v1, (e, i) => e - v2[i])
 			}
-			this.mul = (v, x) => v.map(e => e*x)
-			this.div = (v, x) => v.map(e => e/x)
+			this.mul = (v, x) => fastmap(v, e => e*x)
+			this.div = (v, x) => fastmap(v, e => e/x)
 			this.length = v => sqrt(dot(v, v))
 			this.norm = v => div(v, length(v))
 			this.dist = (v1, v2) => length(sub(v1, v2))
@@ -624,7 +585,9 @@
 			buffer += "\n"
 		}
 		if (curError) buffer += `\nERROR: ${curError}`
-		frame.innerText = buffer
+		if (frame.innerText != buffer) {
+			frame.innerText = buffer
+		}
 	}
 	setInterval(updateFrame, 1000 / FPS);
 </script>
