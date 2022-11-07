@@ -431,9 +431,12 @@
 	examplesElem.onchange()
 
 	const share = document.getElementById("share")
+	let apikey = ""
 	share.onclick = ()=>{
 		const source = editor.getValue()
-		const apikey = "_eC12UtXqhtrIUS7vRrGNFmFaA-hrVEc" // Be nice with this :)
+		const charset = charsets.options[charsets.selectedIndex].text
+		if (!apikey) apikey = prompt(`Sorry for the hassle! textshader is just a static site with no backend so we use Pastebin to store shaders but are actively looking for a better solution. To share a shader, either provide a valid Pastebin API key here by creating an account at pastebin.com or manually copying the shader and pasting it yourself, then share it with: textshader.com#${charset}.PASTECODE`)
+		if (!apikey) return
 
 		fetch('https://corsproxy.io/?' + encodeURIComponent(`https://pastebin.com/api/api_post.php`),
 			{
@@ -443,7 +446,7 @@
 			})
 			.then(response => {
 				if (response.ok) return response.text()
-				console.log(response.body)
+				console.log(response.text())
 				console.log(response)
 				updateHint("Error!")
 				throw new Error(`Could not fetch source`)
