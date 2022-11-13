@@ -154,7 +154,7 @@
 	editor.setOptions({fontSize: "12pt"})
 	editor.setTheme("ace/theme/twilight")
 	editor.session.setMode("ace/mode/javascript")
-	setTimeout(()=> editor.session.$worker.send("changeOptions", [{asi: true}]), 100)
+	editor.session.on("changeMode", ()=>editor.session.$worker.send("changeOptions", [{asi: true}]))
 
 	const fastmap = (v, f) => {
 		let ret = []
@@ -166,11 +166,19 @@
 
 	const hint = document.getElementById("hint")
 	let lastHint = null
+	let loading = false
+	let loadingText = "-\\|/"
 	const updateHint = message => {
-		clearTimeout(lastHint)
-		hint.innerText = message
-		lastHint = setTimeout(()=>{hint.innerText = ""}, 5000)
+		if (message == "loading") {
+			loading = true
+		} else {
+			loading = false
+			clearTimeout(lastHint)
+			hint.innerText = message
+			lastHint = setTimeout(()=>{hint.innerText = ""}, 5000)
+		}
 	}
+	setInterval(()=>{if (loading) hint.innerText = loadingText[(loadingText.indexOf(hint.innerText) + 1) % loadingText.length]}, 100)
 
 	let paused = false
 	const playpause = document.getElementById("playpause")
@@ -234,6 +242,9 @@
 	}
 
 	const examples = [
+["blank", "default", `function shader(x, y, t) {
+	return 0
+}`],
 ["tutorial", "ascii", `function shader(x, y, t) {
     tutorial = [
         "// textshader is a live rendered view of a shader written in javascript.",
@@ -426,25 +437,21 @@
 		editor.clearSelection()
 		setCharset(option.getAttribute("charset"))
 	}
-	// Pick a random example on load
-	examplesElem.selectedIndex = Math.floor(Math.random() * examples.length)
-	examplesElem.onchange()
 
 	const share = document.getElementById("share")
-	let apikey = ""
 	share.onclick = ()=>{
 		const source = editor.getValue()
 		const charset = charsets.options[charsets.selectedIndex].text
-		if (!apikey) apikey = prompt(`Sorry for the hassle! textshader is just a static site with no backend so we use Pastebin to store shaders but are actively looking for a better solution. To share a shader, either provide a valid Pastebin API key here by creating an account at pastebin.com or manually copying the shader and pasting it yourself, then share it with: textshader.com#${charset}.PASTECODE`)
-		if (!apikey) return
+		updateHint("loading")
 
-		fetch('https://corsproxy.io/?' + encodeURIComponent(`https://pastebin.com/api/api_post.php`),
+		fetch('https://textshader.herokuapp.com',
 			{
 				method: "POST",
-				headers: { "Content-Type": "application/x-www-form-urlencoded" },
-				body: `api_dev_key=${apikey}&api_option=paste&api_paste_code=${encodeURIComponent(source)}`
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({charset: charset, source: source})
 			})
 			.then(response => {
+				console.log("TEST")
 				if (response.ok) return response.text()
 				console.log(response.text())
 				console.log(response)
@@ -453,23 +460,41 @@
 			})
 			.then(data => {
 				console.log(data)
-				location.hash = data.split("/").at(-1)
+				location.hash = `${charset}.${data}`
+				navigator.clipboard.writeText(location.href)
 				updateHint("Copied link!")
 			})
+			.catch(error => {
+				updateHint("Error!")
+				console.log(error)
+			});
 	}
 
 	const hash = location.hash.substr(1)
-	if (hash != "") {
-		let [charset, pastecode] = hash.split(".")
-		if (confirm(`Do you trust the code at https://pastebin.com/${pastecode} to run in your browser?`))
-		fetch('https://corsproxy.io/?' + encodeURIComponent(`https://pastebin.com/raw/${pastecode}`))
+	if (hash == "") {
+		// Pick a random example non-blank on load
+		examplesElem.selectedIndex = 1 + Math.floor(Math.random() * (examples.length - 1))
+		examplesElem.onchange()
+	} else {
+		// Fetch the gist
+		const [charset, pastecode] = hash.split(".")
+		if (confirm(`Do you trust the code at https://gist.github.com/${pastecode} to run in your browser?`))
+		fetch(`https://api.github.com/gists/${pastecode}`)
 			.then(response => {
-				if (response.ok) return response.text()
+				if (response.ok) return response.json()
 				throw new Error('Could not fetch source')
 			})
 			.then(data => {
-				editor.setValue(data)
-				setCharset(charset)
+				const sourceURL = data.files["textshader.js"].raw_url
+				fetch(sourceURL)
+					.then(response => {
+						if (response.ok) return response.text()
+						throw new Error('Could not fetch source')
+					})
+					.then(data => {
+						editor.setValue(data)
+						setCharset(charset)
+					});
 			});
 	}
 
