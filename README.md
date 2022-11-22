@@ -11,7 +11,7 @@ Goals I started out with:
  
 Current State:
  - I pulled in the amazing [Ace editor](https://ace.c9.io) because creating my own is a monumental effort and not worth it
- - I use Github gists to store shared shaders (click the 🔗 button!) and did end up using a tiny backend to proxy the requests because I didn't want to require users to provide their own Github token or leak my Github token (allowing anyone to read/write all the shared shaders)
+ - I use Github gists to store shared shaders (click ☰ -> Share Shader!) and did end up using a tiny backend to proxy the requests because I didn't want to require users to provide their own Github token or leak my Github token (allowing anyone to read/write all the shared shaders)
 
 TODO (when I get around to it, maybe never):
  - More inputs (keyboard, mouse clicks, microphone, webcam)
