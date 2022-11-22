@@ -30,7 +30,7 @@
 	.header {
 		padding: 5px;
 		color: white;
-		font-size: 30px;
+		font-size: 25px;
 		font-family: monospace;
 		font-weight: bolder;
 		text-align: left;
@@ -40,7 +40,7 @@
 	.footer {
 		padding: 5px;
 		color: white;
-		font-size: 30px;
+		font-size: 25px;
 		font-family: monospace;
 		font-weight: bolder;
 		text-align: left;
@@ -82,6 +82,10 @@
 		font-size: 13px;
 		max-width: 80ch;
 		min-width: 80ch;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+		user-select: none;
+		cursor: pointer;
 	}
 	.lightmode #frame {
 		background: #EEEEEE;
@@ -93,20 +97,20 @@
 	}
 	.header > span:first-child {
 		flex-grow: 1;
-		padding: 5px;
+		padding: 0px 5px 0px 5px;
 	}
 	.header > span:not(:first-child) {
 		flex-grow: 0;
-		padding: 5px;
+		padding: 0px 5px 0px 5px;
 		font-weight: normal;
 	}
 	.footer > span:first-child {
 		flex-grow: 1;
-		padding: 5px;
+		padding: 0px 5px 0px 5px;
 	}
 	.footer > span:not(:first-child) {
 		flex-grow: 0;
-		padding: 5px;
+		padding: 0px 5px 0px 5px;
 	}
 	.menubutton {
 		cursor:pointer;
@@ -118,7 +122,30 @@
 		width: 10ch;
 		white-space: pre;
 	}
-
+	#hamburger {
+		appearance: none;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		background-color: rgba(0,0,0,0);
+		border: 0px solid white;
+		color: white;
+		text-align: center;
+		width: 2.5ch;
+		cursor: pointer;
+		transform: scale(2) translate(0px,-3px);
+	}
+	/* Safari renders weirdly and needs correcting but only on desktop */
+	_::-webkit-full-page-media, _:future, :root #hamburger {
+		transform: scale(2) translate(5px,-3px);
+	}
+	@media screen and (max-width: 1000px) {
+		.nomobile {
+			display: none;
+		}
+		#hamburger {
+			transform: scale(2) translate(0px,-3px) !important;
+		}
+	}
 	a, a:hover, a:visited, a:active {
 		color: inherit;
 	}
@@ -149,10 +176,16 @@
 				<option value="0123456789#">debug</option>
 			</select>
 		</span>
-		<span id="darklight" class="menubutton" title="toggle light/dark">🌕</span>
 		<span id="playpause" class="menubutton" title="play/pause">⏸︎</span>
-		<span id="fullscreen" class="menubutton" title="fullscreen">📺</span>
-		<span id="share" class="menubutton" title="share">🔗</span>
+		<span id="fullscreen" class="menubutton nomobile" title="fullscreen"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#FFFFFF" d="M24 9h-2v-4h-4v-2h6v6zm-6 12v-2h4v-4h2v6h-6zm-18-6h2v4h4v2h-6v-6zm6-12v2h-4v4h-2v-6h6zm14 4h-16v10h16v-10z"/></svg></span>
+		<span>
+			<select name="hamburger" id="hamburger" onchange="console.log(this)">
+				<option disabled selected>☰</option>
+				<option>Share Shader</option>
+				<option>Copy Frame Text</option>
+				<option>Light Mode</option>
+			</select>
+		</span>
 	</div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.12.3/ace.min.js" type="text/javascript" charset="utf-8"></script>
 <script>
@@ -198,27 +231,84 @@
 		focused = document.visibilityState != "hidden"
 	});
 
-	const darklight = document.getElementById("darklight")
-	darklight.onclick = ()=>{
-		const light = document.body.classList.toggle("lightmode")
-		darklight.innerText = light ? "🌑" : "🌕"
-		editor.setTheme(light ? "ace/theme/chrome" : "ace/theme/twilight")
-		editor.focus()
+	let fullscreen = false
+	const hamburger = document.getElementById("hamburger")
+	hamburger.onclick = function() {
+		console.log(this)
+	}
+	hamburger.onchange = function() {
+		const selected = this.options[this.selectedIndex]
+		this.selectedIndex = 0
+		switch (selected.value) {
+			case "Share Shader":
+			const source = editor.getValue()
+			const charset = charsets.options[charsets.selectedIndex].text
+			updateHint("loading")
+
+			fetch('https://textshader.herokuapp.com',
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({charset: charset, source: source})
+				})
+				.then(response => {
+					if (response.ok) return response.text()
+					console.log(response.text())
+					console.log(response)
+					updateHint("Error!")
+					throw new Error(`Could not fetch source`)
+				})
+				.then(data => {
+					console.log(data)
+					location.hash = `${charset}.${data}`
+					navigator.clipboard.writeText(location.href)
+					updateHint("Copied link!")
+				})
+				.catch(error => {
+					updateHint("Error!")
+					console.log(error)
+				});
+			break;
+			case "Copy Frame Text":
+				navigator.clipboard.writeText(frame.innerText)
+				updateHint("Copied!")
+			break;
+			case "Light Mode":
+				document.body.classList.add("lightmode")
+				selected.text = "Dark Mode"
+				editor.setTheme("ace/theme/chrome")
+				editor.focus()
+			break;
+			case "Dark Mode":
+				document.body.classList.remove("lightmode")
+				selected.text = "Light Mode"
+				editor.setTheme("ace/theme/twilight")
+				editor.focus()
+			break;
+		}
 	}
 
-	let fullscreen = false
 	const fullscreenElem = document.getElementById("fullscreen")
 	fullscreenElem.onclick = ()=>{
-		fullscreen = true
-		document.body.classList.add("fullscreen")
+		let requested = true
 		if (frame.requestFullscreen) {
 			frame.requestFullscreen()
-		} else if (frame.mozRequestFullScreen) {
+		} else if (frame.mozRequestFullscreen) {
 			frame.mozRequestFullScreen()
 		} else if (frame.webkitRequestFullscreen) {
 			frame.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT)
 		} else if (frame.msRequestFullscreen) {
 			frame.msRequestFullscreen()
+		} else {
+			requested = false
+		}
+		if (requested) {
+			console.log((document.fullscreenElement || document.webkitFullscreenElement ||
+document.mozFullScreenElement))
+			fullscreen = true
+			document.body.classList.add("fullscreen")
+		} else {
+			updateHint("Unsupported browser")
 		}
 	}
 
@@ -264,19 +354,20 @@
         "lerp(10, 20, 0.5)",
         "clamp(10,0,1)",
         "dot([1,2,3], [4,5,6])",
-        "add([1,2,3], [4,5,6])",
-        "sub([1,2,3], [4,5,6])",
-        "mul([1,2,3], 4)",
-        "div([1,2,3], 4)",
+        "[add([1,2,3], [4,5,6]), sub([1,2,3], [4,5,6])]",
+        "[mul([1,2,3], 4), div([1,2,3], 4)]",
         "length([1,2,3])",
         "norm([3,4])",
-        "// (all work for any sized vector)",
+        // "// (all work for any sized vector)",
         "",
         "// Time is in seconds",
         "t",
         "",
         "// Some extra hidden variables are available",
-        "[width, height, mousex, mousey]",
+        "[width, height, mousedown, mousex, mousey]",
+        "",
+        "// The last frame is also available (in text-space coordinates)",
+        "prevBuffer[16][7] // Seconds of 't' line",
         "",
         "// Happy hacking!",
     ]
@@ -288,7 +379,7 @@
     if (y < tutorial.length) {
         let line = tutorial[y]
         const result = eval(line)
-        if (result) line += \` -> \${result}\`
+        if (result) line += \` -> \${JSON.stringify(result)}\`
         return line.charCodeAt(x)/127
     }
     return 0;
@@ -296,9 +387,22 @@
 ["earth", "default", `function shader(x, y, t) {
     // Not scientific in the slightest
 
+    // Click to zoom + xray
+    let xray = false
+    if (mousedown) {
+        const zoom = 4
+        if (x > 0.5 && y < 0.5) {
+            x = (x-.75) / zoom + mousex
+            y = (y-.25) / zoom + mousey
+            xray = true
+        } else if (abs(x - mousex) < .5/zoom && abs(y - mousey) < .5/zoom) {
+            xray = true
+        }
+    }
+
     const dir = norm([x-0.5, (y-0.5)*0.6, 1])
 
-    const tex = [0x3fffffc,0x3fffffc,0x2fffffc,0x7fffffc,0x3fffffc,0x1fffffc,0x1fffffc,0x1fffffc,0x3ffe7fc,0x3ffeff8,0x3fffff8,0x1fffff8,0x1fffff8,0xfffff8,0xfffff8,0x3ffff8,0x1ffff8,0x1ffff8,0xffff8,0x7fff8,0x7fff8,0x203fff8,0x3fff8,0xbfff8,0x21b7ff8,0x61bfff8,0x21dfff8,0x307bff8,0x121ff8,0x1321e38,0x7c0030,0x107c0070,0xc7a00e0,0xe7e01a0,0xe7e01ec,0x37f03fc,0x3ff07fc,0x3ff87fc,0x3ff8ffc,0x7ff9ffc,0x7ffbffc,0x7fffffc,0x7ffffd8,0x3fffff8,0xbfffff8,0x1be1fff8,0x1ff1fff8,0x1ee0fff8,0x1c80fff8,0x1c00fff0,0x1e01fff8,0x1e00fff0,0x1a007ff0,0x18412ff0,0x2003f0,0x122001f8,0x102001f0,0x102003f8,0x102003f0,0x100007f0,0x18080f70,0x18007ff0,0x1802e7f0,0x1000c7f0,0x1801ff70,0x807fff0,0x7fff0,0xffff0,0x100ffff0,0x1007fff0,0x1003fff0,0x1001fff0,0x1000fff0,0x7fff0,0x1007fff0,0x5fff0,0x402fff0,0xfff0,0x7ff0,0x401bff0,0x73ff0,0x777f0,0xe71f0,0x1b3f0,0x3ee3f0,0x1f63f0,0xff43f0,0x5f01f0,0x5fa1f0,0x27f81f0,0x3fba1f0,0x3ffb1f0,0x17ffbf0,0xffbff0,0xffdff0,0x1fffff8,0x3ffff7c,0x3fffffc,0x3ff7ffc,0x3ffeffc];
+    const tex = [0x7fffffc,0x7fffffc,0x7fffffc,0x7fffffc,0x3fffffc,0x7fffffc,0x5fffffc,0x1fffffc,0x5fffffc,0x5fffffc,0x3fffffc,0x3fffffc,0x3fefffc,0x3f77ffc,0x3fffffc,0x3fffffc,0x3fffff8,0x3fffff8,0x3fffff8,0x7fffff8,0x7fffff8,0x7fffff8,0x3fffff8,0x3fffff8,0x3fffff8,0x3fffff8,0x1fffff8,0x1fffff8,0x1fffff8,0x1fffff8,0xfffff8,0x3ffff8,0x3ffff8,0x3ffff8,0x1ffff8,0x1ffff8,0x1ffff8,0xffff8,0xffbf8,0xffff8,0xffff8,0x7fff8,0x7fff8,0x7fff8,0x7fff8,0x7fff8,0x17fff8,0x17fff8,0x1bfff8,0x413fff8,0x413fff8,0x513fff8,0x419fff8,0x419fff8,0x40dfff8,0xc2d3ff8,0x253ff8,0x241ff8,0x241f70,0x741c30,0x741030,0xf40030,0xf40070,0x10fc0060,0x10fc00e0,0x1cfc00e0,0x1cf801a8,0x1cfe01e8,0x1cfe01e8,0xcfe03fc,0x6fe03fc,0x7fe03fc,0x7fe03fc,0x7ff0ffc,0x3ff07fc,0x7ff0ffc,0x7ff0ffc,0x7ff0ffc,0xfff1ffc,0xfffbffc,0xfffbffc,0xffffffc,0xffffff8,0xffffffc,0xfffffdc,0xfffffd8,0x7fbfff8,0x7fffff8,0x17fffff8,0x17fffff8,0x17fffff8,0x37e3fff8,0x3fe1fff8,0x3fe1fff8,0x1dc1fff8,0x1d01fff0,0x1d01fff0,0x1c01fff0,0x1801fff0,0x1c01fff0,0x1c01fff0,0x1e01fff0,0x1881fff0,0x1881fff0,0x1001fff0,0x38807ff0,0x30005ff0,0x10000ff0,0x108007f0,0x104003f0,0x206003f0,0x244003f0,0x200003f0,0x200003f0,0x3f0,0x200003f0,0x208003f0,0x200003f0,0x208007f0,0x380007f0,0x20801f70,0x30001ff0,0x10801ff0,0x1000fff0,0x3000e7f0,0x3000e7f0,0x3001c7f0,0x3085dff0,0x3003ffe0,0x1017ffe0,0x3007fff0,0x2007fff0,0x17eff0,0xffff0,0x100ffff0,0x100feff0,0xffff0,0x200ffff0,0x200ffff0,0x2007fff0,0x2004fff0,0x3fff0,0x2001fff0,0x2001fff0,0x1fff0,0x7fff0,0x7fff0,0x2007fff0,0xffff0,0xffff0,0xffff0,0x7fff0,0x7ffe0,0x6ffe0,0xffe0,0x7ff0,0x227ff0,0x27ff0,0x17fe0,0x37ff0,0x23ff0,0x63ff0,0xe37f0,0xe37f0,0xe23f0,0xcb3f0,0x723f0,0x963f0,0x1923f0,0x7d83e0,0x3f03f0,0x2e63f0,0x1f43e0,0x3f43f0,0x7d43e0,0xbf43e0,0xbf03f0,0x3f21f0,0x1af01f0,0x7f81f0,0x3fb80f0,0x3ffa0f0,0x7fda0f0,0x7fdb1f0,0x3fff3f0,0x3fff7f0,0x5fffff0,0x5ffbff0,0x5ffaff0,0x3ffbff0,0x13fffff0,0x3ffeffc,0x7ffcf7c,0x7ffdff0,0x7fffefc,0x7fffefc,0x7fffcfc,0x7fffdfc,0x5fffdfc,0x7ffbffc]
 
     // Rays implicitly originate at [0,0,0] to simplify
     function intersect(pos, r) {
@@ -332,11 +436,25 @@
         return dot(moonnormal, sunDir)
     }
 
+    const sample = (lat, lon) => {
+        const xind = round(((((lat / (2*PI)) % 1) + 1) % 1) * (tex.length-1))
+        const yind = round(lon * 31)
+        return tex[xind] >> yind & 1
+    }
+
     if (hitearth) {
-        const lat = ((PI-atan2(earthnormal[0], earthnormal[2]) + t*0.2) / (2*PI)) % 1
-        const lon = (earthnormal[1]+1)/2
-        const land = 1.05-(tex[round(lat * (tex.length-1))] >> round((lon * 31)) & 1)
-        return (dot(earthnormal, sunDir)+0.2) * land
+        const lat = t*0.2 - atan2(earthnormal[0], earthnormal[2])
+        const lon = (earthnormal[1]+1) / 2
+        if (mousedown && xray) {
+            const land = sample(lat, lon)
+            const near1 = sample(lat + 0.02, lon+0.005)
+            const near2 = sample(lat + 0.02, lon-0.005)
+            const linedetector = land != near1 || land != near2
+            return linedetector || (1-land) * 0.1 || 0.05
+        } else {
+            const land = 1.05 - sample(lat, lon)
+            return (dot(earthnormal, sunDir)+0.2) * land
+        }
     }
 
     return 0.1*((round(round(x*(width-1)+t*2) * (y*(height-1)+10)) + y*18 & 0x1f) == 0)
@@ -359,7 +477,7 @@
         if (length(delta) > 0.2) {
             delta = mul(norm(delta), 0.2)
         }
-        drawCircle(add(center, delta), 0.15, 0.7)
+        drawCircle(add(center, delta), mousedown ? 0.1 : 0.15, 0.7)
     }
     drawEye([0.5,0.5])
     drawEye([1.5,0.5])
@@ -445,38 +563,6 @@
 		setCharset(option.getAttribute("charset"))
 	}
 
-	const share = document.getElementById("share")
-	share.onclick = ()=>{
-		const source = editor.getValue()
-		const charset = charsets.options[charsets.selectedIndex].text
-		updateHint("loading")
-
-		fetch('https://textshader.herokuapp.com',
-			{
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({charset: charset, source: source})
-			})
-			.then(response => {
-				console.log("TEST")
-				if (response.ok) return response.text()
-				console.log(response.text())
-				console.log(response)
-				updateHint("Error!")
-				throw new Error(`Could not fetch source`)
-			})
-			.then(data => {
-				console.log(data)
-				location.hash = `${charset}.${data}`
-				navigator.clipboard.writeText(location.href)
-				updateHint("Copied link!")
-			})
-			.catch(error => {
-				updateHint("Error!")
-				console.log(error)
-			});
-	}
-
 	const hash = location.hash.substr(1)
 	if (hash == "") {
 		// Pick a random example non-blank on load
@@ -505,9 +591,10 @@
 			});
 	}
 
+	let mousedown = false
 	let mousex = 0
 	let mousey = 0
-	function onMousemove(e){
+	function onMousemove(e) {
 		// Taken from https://stackoverflow.com/questions/16154857
 		let m_posx = 0, m_posy = 0, e_posx = 0, e_posy = 0;
 		if (!e) e = window.event
@@ -527,8 +614,19 @@
 		}
 		mousex = (m_posx-e_posx) / frame.offsetWidth
 		mousey = 1 - (m_posy-e_posy) / (height * parseInt(window.getComputedStyle(frame).lineHeight))
+		// Round to display more cleanly
+		mousex = round(mousex*1000)/1000
+		mousey = round(mousey*1000)/1000
 	}
-	document.body.addEventListener('mousemove', onMousemove, false)
+	function setPrimaryButtonState(e) {
+		const flags = e.buttons !== undefined ? e.buttons : e.which;
+		mousedown = (flags & 1) === 1;
+	}
+
+	document.addEventListener("mousemove", onMousemove)
+	document.addEventListener("mousedown", setPrimaryButtonState)
+	document.addEventListener("mousemove", setPrimaryButtonState)
+	document.addEventListener("mouseup", setPrimaryButtonState)
 
 	const frame = document.getElementById("frame")
 	const originalFrameWidth = frame.offsetWidth
@@ -539,6 +637,7 @@
 
 	let lastSource = ""
 	let curError = ""
+	let prevBuffer = [...Array(height)].map(_=>Array(width).fill(0))
 
 	function updateFrame() {
 		if (paused || !focused) return
@@ -602,27 +701,32 @@
 				curError = e.message
 			}
 		}
-		let buffer = ""
+		let buffer = [...Array(height)].map(_=>Array(width).fill(0))
+		let textBuffer = ""
 		for (let i = 0; i < height; i++) {
 			for (let j = 0; j < width; j++) {
 				let ind = 0
+				let val = 0
 				try {
-					const val = shader(j/(width-1), (height - 1 - i) / (height - 1), t)
-					ind = floor(clamp(val * (colors.length - 1), 0, colors.length - 1))
-					if (!Number.isFinite(ind)) {
-						ind = 0
+					val = shader(j/(width-1), (height - 1 - i) / (height - 1), t)
+					val = clamp(val, 0, 1)
+					if (!Number.isFinite(val)) {
+						val = 0
 					}
 				} catch(e) {
 					if (!curError) curError = e.message
 				}
-				buffer += colors[ind]
+				ind = floor(clamp(val * (colors.length - 1), 0, colors.length - 1))
+				buffer[i][j] = val
+				textBuffer += colors[ind]
 			}
-			buffer += "\n"
+			textBuffer += "\n"
 		}
-		if (curError) buffer += `\nERROR: ${curError}`
-		if (frame.innerText != buffer) {
-			frame.innerText = buffer
+		if (curError) textBuffer += `\nERROR: ${curError}`
+		if (frame.innerText != textBuffer) {
+			frame.innerText = textBuffer
 		}
+		prevBuffer = buffer
 	}
 	setInterval(updateFrame, 1000 / FPS);
 </script>
