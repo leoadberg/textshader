@@ -547,6 +547,41 @@ document.mozFullScreenElement))
     }
     return drawBall(t) + drawBall(t+1) + drawBall(t+2)
 }`],
+["rick", "default", `if (video == undefined) {
+    const container = document.createElement("div")
+    container.innerHTML = \`
+    <video id="rickvideo" autoplay muted loop playsinline>
+        <source src="rick.mp4"></source>
+    </video>
+    <canvas id="rickcanvas"></canvas>
+    \`;
+    var [video, canvas] = container.children
+    video.play()
+}
+
+let lastT = null
+let data = null
+let vw = null
+let vh = null
+function shader(x, y, t) {
+    if (t != lastT) {
+        lastT = t
+        let ctx = canvas.getContext("2d")
+        vw = video.videoWidth
+        vh = video.videoHeight
+        if (vw == 0) return // Not loaded yet
+
+        canvas.width = vw
+        canvas.height = vh
+	    ctx.drawImage(video,0,0)
+	    data = ctx.getImageData(0,0,vw,vh).data
+    }
+    if (vw == 0) return // Not loaded yet
+
+    const i = round((1-y) * vh)
+    const j = round(x * vw)
+    return (data[(i * vw + j) * 4] / 500) - 0.2
+}`],
 ]
 	const examplesElem = document.getElementById("examples")
 	for (const [name, charset, source] of examples) {
