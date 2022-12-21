@@ -556,7 +556,6 @@ document.mozFullScreenElement))
     <canvas id="rickcanvas"></canvas>
     \`;
     var [video, canvas] = container.children
-    video.play()
 }
 
 let lastT = null
@@ -566,6 +565,7 @@ let vh = null
 function shader(x, y, t) {
     if (t != lastT) {
         lastT = t
+        video.play()
         let ctx = canvas.getContext("2d")
         vw = video.videoWidth
         vh = video.videoHeight
