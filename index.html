@@ -194,7 +194,7 @@
 	editor.setOptions({fontSize: "12pt"})
 	editor.setTheme("ace/theme/twilight")
 	editor.session.setMode("ace/mode/javascript")
-	editor.session.on("changeMode", ()=>editor.session.$worker.send("changeOptions", [{asi: true}]))
+	editor.session.on("changeMode", ()=>editor.session.$worker.send("changeOptions", [{asi: true, esversion: 7}]))
 
 	const fastmap = (v, f) => {
 		let ret = []
